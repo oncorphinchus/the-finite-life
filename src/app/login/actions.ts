@@ -32,7 +32,7 @@ export async function login(
 
   const result = authSchema.safeParse(rawData);
   if (!result.success) {
-    return { error: result.error.errors[0].message };
+    return { error: result.error.issues[0].message };
   }
 
   const { error } = await supabase.auth.signInWithPassword(result.data);
@@ -58,7 +58,7 @@ export async function signup(
 
   const result = authSchema.safeParse(rawData);
   if (!result.success) {
-    return { error: result.error.errors[0].message };
+    return { error: result.error.issues[0].message };
   }
 
   const { error } = await supabase.auth.signUp(result.data);
@@ -82,7 +82,7 @@ export async function sendMagicLink(
 
   const result = magicLinkSchema.safeParse(rawData);
   if (!result.success) {
-    return { error: result.error.errors[0].message };
+    return { error: result.error.issues[0].message };
   }
 
   const { error } = await supabase.auth.signInWithOtp({
