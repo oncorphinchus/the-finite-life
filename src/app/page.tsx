@@ -4,13 +4,13 @@ import {
   LuxuryHeading, 
   LuxuryText 
 } from "@/components/layout/LuxuryWrapper";
-import { Header } from "@/components/layout/Header";
 import { LifeGrid, GridLegend } from "@/components/life-grid/LifeGrid";
 import { TaskList } from "@/components/tasks/TaskList";
 import { calculateWeeksLived } from "@/lib/date-utils";
 import { createClient } from "@/lib/supabase/server";
+import { HomeClient } from "./HomeClient";
 
-// Demo birth date for initial view (will be replaced by user settings)
+// Demo birth date for visitors (will be replaced by user settings)
 const DEMO_BIRTH_DATE = "1990-01-15";
 
 export default async function Home() {
@@ -20,18 +20,34 @@ export default async function Home() {
   const { data: { user } } = await supabase.auth.getUser();
   
   let birthDate = DEMO_BIRTH_DATE;
+  let lifeExpectancy = 4000;
   let tasks: any[] = [];
+  let needsOnboarding = false;
+  let userSettings: { birth_date?: string; life_expectancy_weeks?: number } | null = null;
   
   if (user) {
     // Get user settings
     const { data: settings } = await supabase
       .from("user_settings")
-      .select("birth_date")
+      .select("birth_date, life_expectancy_weeks")
       .eq("user_id", user.id)
       .single();
     
+    // Transform null to undefined for cleaner typing
+    userSettings = settings ? {
+      birth_date: settings.birth_date ?? undefined,
+      life_expectancy_weeks: settings.life_expectancy_weeks ?? undefined,
+    } : null;
+    
     if (settings?.birth_date) {
       birthDate = settings.birth_date;
+    } else {
+      // User is logged in but hasn't set birth date - trigger onboarding
+      needsOnboarding = true;
+    }
+    
+    if (settings?.life_expectancy_weeks) {
+      lifeExpectancy = settings.life_expectancy_weeks;
     }
     
     // Get tasks
@@ -46,100 +62,18 @@ export default async function Home() {
   
   const weeksLived = calculateWeeksLived(birthDate);
   const currentWeek = weeksLived + 1;
+  const weeksRemaining = Math.max(0, lifeExpectancy - weeksLived);
 
   return (
-    <LuxuryWrapper>
-      {/* Header with Auth */}
-      <Header />
-      
-      {/* Hero Section */}
-      <LuxurySection className="text-center">
-        <LuxuryHeading as="h1">
-          The Finite Life
-        </LuxuryHeading>
-        <LuxuryText className="max-w-xl mx-auto text-lg">
-          You have approximately 4,000 weeks. 
-          This is week <span className="font-serif text-foreground">{currentWeek.toLocaleString()}</span>.
-        </LuxuryText>
-      </LuxurySection>
-
-      {/* Life Grid Section */}
-      <LuxurySection>
-        <LuxuryHeading as="h2" className="text-center mb-8">
-          Your Life in Weeks
-        </LuxuryHeading>
-        <LifeGrid currentWeek={currentWeek} />
-        <GridLegend />
-      </LuxurySection>
-
-      {/* Stats Section */}
-      <LuxurySection>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
-          <StatCard
-            label="Weeks Lived"
-            value={weeksLived.toLocaleString()}
-          />
-          <StatCard
-            label="Weeks Remaining"
-            value={(4000 - weeksLived).toLocaleString()}
-          />
-          <StatCard
-            label="Years Lived"
-            value={Math.floor(weeksLived / 52).toString()}
-          />
-          <StatCard
-            label="% Complete"
-            value={`${((weeksLived / 4000) * 100).toFixed(1)}%`}
-          />
-        </div>
-      </LuxurySection>
-
-      {/* Tasks Section */}
-      <LuxurySection>
-        <LuxuryHeading as="h2">
-          Your Tasks
-        </LuxuryHeading>
-        <LuxuryText className="mb-8">
-          Every task has a deadline. Every deadline can be shortened. 
-          The <span className="font-medium text-foreground">Minus 1 Day</span> button 
-          reminds you that time is finite.
-        </LuxuryText>
-        
-        {user ? (
-          <TaskList 
-            tasks={tasks} 
-            emptyMessage="No tasks yet. Start by creating your first task."
-          />
-        ) : (
-          <div className="text-center py-12 border border-dashed border-border rounded-lg">
-            <p className="text-muted-foreground font-serif text-lg">
-              Sign in to create and manage your tasks
-            </p>
-            <p className="text-sm text-muted-foreground mt-2">
-              Your life grid will also sync to your actual birth date.
-            </p>
-          </div>
-        )}
-      </LuxurySection>
-
-      {/* Footer */}
-      <footer className="text-center text-sm text-muted-foreground pt-12 border-t border-border">
-        <p className="font-serif italic">
-          "The days are long, but the years are short."
-        </p>
-        <p className="mt-4">
-          Inspired by Oliver Burkeman&apos;s <em>Four Thousand Weeks</em>
-        </p>
-      </footer>
-    </LuxuryWrapper>
-  );
-}
-
-function StatCard({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="p-4 rounded-lg bg-card border border-border">
-      <p className="text-2xl md:text-3xl font-serif text-foreground">{value}</p>
-      <p className="text-sm text-muted-foreground mt-1">{label}</p>
-    </div>
+    <HomeClient
+      user={user}
+      tasks={tasks}
+      currentWeek={currentWeek}
+      weeksLived={weeksLived}
+      weeksRemaining={weeksRemaining}
+      lifeExpectancy={lifeExpectancy}
+      needsOnboarding={needsOnboarding}
+      userSettings={userSettings}
+    />
   );
 }

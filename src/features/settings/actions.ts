@@ -76,3 +76,48 @@ export async function createOrUpdateSettings(formData: FormData) {
   revalidatePath("/");
   return { data };
 }
+
+// Simplified update function for SettingsDialog component
+export async function updateUserSettings(settings: {
+  birth_date?: string;
+  life_expectancy_weeks?: number;
+}) {
+  const supabase = await createClient();
+  
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user) {
+    return { error: "Not authenticated" };
+  }
+
+  // birth_date is required
+  if (!settings.birth_date) {
+    return { error: "Birth date is required" };
+  }
+
+  // Validate birth_date
+  const parsed = new Date(settings.birth_date);
+  if (isNaN(parsed.getTime()) || parsed >= new Date()) {
+    return { error: "Please enter a valid birth date in the past" };
+  }
+
+  // Upsert settings
+  const { data, error } = await supabase
+    .from("user_settings")
+    .upsert({
+      user_id: user.id,
+      birth_date: settings.birth_date,
+      life_expectancy_weeks: settings.life_expectancy_weeks || 4000,
+      updated_at: new Date().toISOString(),
+    }, {
+      onConflict: "user_id",
+    })
+    .select()
+    .single();
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  revalidatePath("/");
+  return { data };
+}

@@ -43,6 +43,13 @@
 - [x] **4.5.3** Magic link support ✓
 - [x] **4.5.4** Auth callback route (`/auth/callback`) ✓
 
+## Phase 4.6: User Input & Onboarding
+
+- [x] **4.6.1** Reorder `page.tsx`: Tasks MUST be visible immediately (Productivity first, Philosophy second) ✓
+- [x] **4.6.2** Create `CreateTask.tsx`: A clean, high-end input field at the top of the task list ✓
+- [x] **4.6.3** Create `SettingsDialog.tsx`: A modal to set `birth_date` (Critical for LifeGrid accuracy) ✓
+- [x] **4.6.4** Onboarding Logic: Force-open Settings Dialog if `birth_date` is null ✓
+
 ## Phase 5: Polish & Deploy
 
 - [x] **5.1** Framer Motion page transitions ✓
@@ -68,3 +75,4 @@
 - **Minus 1 Button:** `useOptimistic` — no loading spinners
 - **Data Fetching:** React Server Components + Server Actions
 - **Auth:** Supabase Auth with RLS policies
+
