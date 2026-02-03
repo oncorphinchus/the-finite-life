@@ -22,32 +22,20 @@ const COLORS = {
   futureStroke: "#1A1A1A",
 };
 
+// Single container fade - no staggered children
 const containerVariants = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
     transition: {
-      duration: 0.3,
-      when: "beforeChildren" as const,
-      staggerChildren: 0.0005,
+      duration: 0.8,
+      ease: [0.22, 1, 0.36, 1],
     },
   },
 };
 
-const cellVariants = {
-  hidden: { opacity: 0, scale: 0.8 },
-  visible: {
-    opacity: 1,
-    scale: 1,
-    transition: {
-      duration: 0.2,
-      ease: "easeOut" as const,
-    },
-  },
-};
-
-// Memoized cell component for performance
-const WeekCell = memo(function WeekCell({
+// Static cell - no animation, pure performance
+function WeekCell({
   weekNumber,
   state,
   x,
@@ -61,41 +49,58 @@ const WeekCell = memo(function WeekCell({
   const isPast = state === "past";
   const isCurrent = state === "current";
 
+  // Current week gets the pulsing animation via native SVG animate
+  if (isCurrent) {
+    return (
+      <rect
+        key={weekNumber}
+        x={x}
+        y={y}
+        width={CELL_SIZE}
+        height={CELL_SIZE}
+        rx={1}
+        fill={COLORS.current}
+        style={{
+          filter: "drop-shadow(0 0 4px rgba(26, 26, 26, 0.6))",
+        }}
+      >
+        <animate
+          attributeName="opacity"
+          values="1;0.4;1"
+          dur="2s"
+          repeatCount="indefinite"
+        />
+      </rect>
+    );
+  }
+
+  // Past and future weeks - completely static, no framer-motion
   return (
-    <motion.rect
+    <rect
       key={weekNumber}
-      variants={cellVariants}
       x={x}
       y={y}
       width={CELL_SIZE}
       height={CELL_SIZE}
       rx={1}
-      fill={isPast || isCurrent ? COLORS.past : "transparent"}
+      fill={isPast ? COLORS.past : "transparent"}
       stroke={isPast ? "none" : COLORS.futureStroke}
       strokeWidth={isPast ? 0 : 0.5}
       strokeOpacity={isPast ? 0 : 0.3}
-      style={isCurrent ? {
-        filter: "drop-shadow(0 0 3px rgba(26, 26, 26, 0.5))",
-      } : undefined}
-    >
-      {isCurrent && (
-        <animate
-          attributeName="opacity"
-          values="1;0.5;1"
-          dur="2s"
-          repeatCount="indefinite"
-        />
-      )}
-    </motion.rect>
+    />
   );
-});
+}
 
-export function LifeGrid({ currentWeek, totalWeeks = 4160 }: LifeGridProps) {
+// Memoized grid component for performance
+const LifeGridInner = memo(function LifeGridInner({ 
+  currentWeek, 
+  totalWeeks = 4160 
+}: LifeGridProps) {
   // Calculate SVG dimensions
   const width = COLS * (CELL_SIZE + CELL_GAP) - CELL_GAP;
   const height = ROWS * (CELL_SIZE + CELL_GAP) - CELL_GAP;
 
-  // Generate all week cells
+  // Generate all week cells - static rects, no animation overhead
   const cells = useMemo(() => {
     const result = [];
     for (let week = 1; week <= totalWeeks; week++) {
@@ -119,6 +124,7 @@ export function LifeGrid({ currentWeek, totalWeeks = 4160 }: LifeGridProps) {
 
   return (
     <div className="w-full overflow-x-auto pb-4">
+      {/* Single motion wrapper for fade-in, no staggered children */}
       <motion.svg
         variants={containerVariants}
         initial="hidden"
@@ -136,6 +142,10 @@ export function LifeGrid({ currentWeek, totalWeeks = 4160 }: LifeGridProps) {
       </motion.svg>
     </div>
   );
+});
+
+export function LifeGrid(props: LifeGridProps) {
+  return <LifeGridInner {...props} />;
 }
 
 // Grid legend component

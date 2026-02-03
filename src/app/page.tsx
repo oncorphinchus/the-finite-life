@@ -4,6 +4,7 @@ import {
   LuxuryHeading, 
   LuxuryText 
 } from "@/components/layout/LuxuryWrapper";
+import { Header } from "@/components/layout/Header";
 import { LifeGrid, GridLegend } from "@/components/life-grid/LifeGrid";
 import { TaskList } from "@/components/tasks/TaskList";
 import { calculateWeeksLived } from "@/lib/date-utils";
@@ -48,6 +49,9 @@ export default async function Home() {
 
   return (
     <LuxuryWrapper>
+      {/* Header with Auth */}
+      <Header />
+      
       {/* Hero Section */}
       <LuxurySection className="text-center">
         <LuxuryHeading as="h1">
