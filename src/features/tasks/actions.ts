@@ -105,38 +105,29 @@ export async function decrementDeadline(taskId: string) {
     return { error: "Not authenticated" };
   }
 
-  // Increment minus_one_count (atomic operation)
-  const { data, error } = await supabase.rpc("increment_minus_one_count", {
-    task_id: taskId,
-    user_id_param: user.id,
-  });
+  // Get current count and increment
+  const { data: task } = await supabase
+    .from("tasks")
+    .select("minus_one_count")
+    .eq("id", taskId)
+    .eq("user_id", user.id)
+    .single();
 
-  // Fallback if RPC doesn't exist - do it manually
-  if (error?.code === "PGRST202") {
-    // Function doesn't exist, use manual update
-    const { data: task } = await supabase
-      .from("tasks")
-      .select("minus_one_count")
-      .eq("id", taskId)
-      .eq("user_id", user.id)
-      .single();
+  if (!task) {
+    return { error: "Task not found" };
+  }
 
-    if (task) {
-      const { error: updateError } = await supabase
-        .from("tasks")
-        .update({
-          minus_one_count: task.minus_one_count + 1,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", taskId)
-        .eq("user_id", user.id);
+  const { error: updateError } = await supabase
+    .from("tasks")
+    .update({
+      minus_one_count: (task.minus_one_count ?? 0) + 1,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", taskId)
+    .eq("user_id", user.id);
 
-      if (updateError) {
-        return { error: updateError.message };
-      }
-    }
-  } else if (error) {
-    return { error: error.message };
+  if (updateError) {
+    return { error: updateError.message };
   }
 
   revalidatePath("/");

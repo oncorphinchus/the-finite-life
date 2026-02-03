@@ -14,7 +14,7 @@ const listVariants = {
   visible: {
     opacity: 1,
     transition: {
-      when: "beforeChildren",
+      when: "beforeChildren" as const,
       staggerChildren: 0.08,
     },
   },

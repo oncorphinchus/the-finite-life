@@ -25,7 +25,7 @@ const cardVariants = {
     y: 0,
     transition: {
       duration: 0.3,
-      ease: [0.22, 1, 0.36, 1],
+      ease: [0.22, 1, 0.36, 1] as const,
     },
   },
   exit: {
@@ -35,7 +35,7 @@ const cardVariants = {
   },
 };
 
-const statusColors: Record<Task["status"], string> = {
+const statusColors: Record<string, string> = {
   pending: "bg-secondary",
   in_progress: "bg-chart-4/20",
   completed: "bg-chart-2/20",
@@ -43,7 +43,7 @@ const statusColors: Record<Task["status"], string> = {
 };
 
 export function TaskCard({ task, onStatusChange }: TaskCardProps) {
-  const [localMinusCount, setLocalMinusCount] = useState(task.minus_one_count);
+  const [localMinusCount, setLocalMinusCount] = useState(task.minus_one_count ?? 0);
   
   const hasDeadline = !!task.deadline;
   const adjustedDeadline = hasDeadline 
@@ -63,7 +63,7 @@ export function TaskCard({ task, onStatusChange }: TaskCardProps) {
         "group relative p-5 rounded-lg border border-border",
         "bg-card hover:bg-card/80",
         "transition-colors duration-200",
-        statusColors[task.status]
+        task.status ? statusColors[task.status] : "bg-secondary"
       )}
     >
       {/* Status indicator */}

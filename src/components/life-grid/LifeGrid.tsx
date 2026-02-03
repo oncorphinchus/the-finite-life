@@ -28,7 +28,7 @@ const containerVariants = {
     opacity: 1,
     transition: {
       duration: 0.3,
-      when: "beforeChildren",
+      when: "beforeChildren" as const,
       staggerChildren: 0.0005,
     },
   },
@@ -41,7 +41,7 @@ const cellVariants = {
     scale: 1,
     transition: {
       duration: 0.2,
-      ease: "easeOut",
+      ease: "easeOut" as const,
     },
   },
 };
