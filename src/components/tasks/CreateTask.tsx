@@ -22,10 +22,9 @@ export function CreateTask({ onTaskCreated }: CreateTaskProps) {
 
     // Clear any previous error
     setError(null);
-
-    // Create a new FormData with the captured value BEFORE resetting
-    const taskFormData = new FormData();
-    taskFormData.set("title", title.trim());
+    
+    // Capture title before resetting form
+    const taskTitle = title.trim();
 
     // Clear input immediately for snappy UX
     if (formRef.current) {
@@ -34,14 +33,10 @@ export function CreateTask({ onTaskCreated }: CreateTaskProps) {
     inputRef.current?.focus();
 
     startTransition(async () => {
-      const result = await createTask(taskFormData);
+      const result = await createTask(taskTitle);
       
       if (result?.error) {
-        // Show error to user
-        const errorMsg = typeof result.error === 'string' 
-          ? result.error 
-          : 'Failed to create task';
-        setError(errorMsg);
+        setError(result.error);
         console.error("CreateTask error:", result.error);
       } else {
         // Success - refresh to show new task

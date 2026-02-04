@@ -21,7 +21,7 @@ const updateTaskSchema = z.object({
   sort_order: z.number().int().optional(),
 });
 
-export async function createTask(formData: FormData) {
+export async function createTask(title: string) {
   const supabase = await createClient();
   
   // Get current user
@@ -31,25 +31,21 @@ export async function createTask(formData: FormData) {
     return { error: "Not authenticated" };
   }
 
-  // Parse and validate input
-  const rawData = {
-    title: formData.get("title"),
-    description: formData.get("description"),
-    deadline: formData.get("deadline"),
-    parent_id: formData.get("parent_id"),
-  };
-
-  const result = createTaskSchema.safeParse(rawData);
-  if (!result.success) {
-    return { error: result.error.flatten().fieldErrors };
+  // Validate title
+  if (!title || title.trim().length === 0) {
+    return { error: "Title is required" };
+  }
+  
+  if (title.length > 200) {
+    return { error: "Title must be 200 characters or less" };
   }
 
   const taskData: TaskInsert = {
     user_id: user.id,
-    title: result.data.title,
-    description: result.data.description || null,
-    deadline: result.data.deadline || null,
-    parent_id: result.data.parent_id || null,
+    title: title.trim(),
+    description: null,
+    deadline: null,
+    parent_id: null,
   };
 
   const { data, error } = await supabase
