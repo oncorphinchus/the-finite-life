@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useOptimistic, useTransition } from "react";
+import { useRef, useTransition } from "react";
 import { motion } from "framer-motion";
 import { createTask } from "@/features/tasks/actions";
 
@@ -12,11 +12,14 @@ export function CreateTask({ onTaskCreated }: CreateTaskProps) {
   const formRef = useRef<HTMLFormElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const [isPending, startTransition] = useTransition();
-  const [optimisticPending, setOptimisticPending] = useOptimistic(false);
 
   async function handleSubmit(formData: FormData) {
     const title = formData.get("title") as string;
     if (!title?.trim()) return;
+
+    // Create a new FormData with the captured value BEFORE resetting
+    const taskFormData = new FormData();
+    taskFormData.set("title", title.trim());
 
     // Clear input immediately for snappy UX
     if (formRef.current) {
@@ -25,8 +28,7 @@ export function CreateTask({ onTaskCreated }: CreateTaskProps) {
     inputRef.current?.focus();
 
     startTransition(async () => {
-      setOptimisticPending(true);
-      await createTask(formData);
+      await createTask(taskFormData);
       onTaskCreated?.();
     });
   }
@@ -50,7 +52,7 @@ export function CreateTask({ onTaskCreated }: CreateTaskProps) {
           disabled={isPending}
           className="w-full px-0 py-4 bg-transparent border-0 border-b border-border text-foreground text-lg font-serif placeholder:text-muted-foreground/60 placeholder:font-serif focus:outline-none focus:border-foreground transition-colors disabled:opacity-50"
         />
-        {(isPending || optimisticPending) && (
+        {isPending && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
