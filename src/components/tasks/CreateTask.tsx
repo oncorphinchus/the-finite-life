@@ -1,8 +1,9 @@
 "use client";
 
-import { useRef, useTransition } from "react";
-import { motion } from "framer-motion";
+import { useRef, useTransition, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { createTask } from "@/features/tasks/actions";
+import { useRouter } from "next/navigation";
 
 interface CreateTaskProps {
   onTaskCreated?: () => void;
@@ -12,10 +13,15 @@ export function CreateTask({ onTaskCreated }: CreateTaskProps) {
   const formRef = useRef<HTMLFormElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const [isPending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
 
   async function handleSubmit(formData: FormData) {
     const title = formData.get("title") as string;
     if (!title?.trim()) return;
+
+    // Clear any previous error
+    setError(null);
 
     // Create a new FormData with the captured value BEFORE resetting
     const taskFormData = new FormData();
@@ -28,8 +34,20 @@ export function CreateTask({ onTaskCreated }: CreateTaskProps) {
     inputRef.current?.focus();
 
     startTransition(async () => {
-      await createTask(taskFormData);
-      onTaskCreated?.();
+      const result = await createTask(taskFormData);
+      
+      if (result?.error) {
+        // Show error to user
+        const errorMsg = typeof result.error === 'string' 
+          ? result.error 
+          : 'Failed to create task';
+        setError(errorMsg);
+        console.error("CreateTask error:", result.error);
+      } else {
+        // Success - refresh to show new task
+        router.refresh();
+        onTaskCreated?.();
+      }
     });
   }
 
@@ -62,9 +80,23 @@ export function CreateTask({ onTaskCreated }: CreateTaskProps) {
           </motion.div>
         )}
       </div>
-      <p className="mt-2 text-xs text-muted-foreground">
-        Press <kbd className="px-1.5 py-0.5 bg-secondary rounded text-[10px] font-mono">Enter</kbd> to add task
-      </p>
+      <div className="flex items-center justify-between mt-2">
+        <p className="text-xs text-muted-foreground">
+          Press <kbd className="px-1.5 py-0.5 bg-secondary rounded text-[10px] font-mono">Enter</kbd> to add task
+        </p>
+        <AnimatePresence>
+          {error && (
+            <motion.p
+              initial={{ opacity: 0, x: 10 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 10 }}
+              className="text-xs text-red-500"
+            >
+              {error}
+            </motion.p>
+          )}
+        </AnimatePresence>
+      </div>
     </motion.form>
   );
 }
