@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { z } from "zod";
-import type { TaskInsert, TaskUpdate } from "@/types/database";
+import type { TaskInsert, TaskUpdate, Task } from "@/types/database";
 
 // Validation schemas
 const createTaskSchema = z.object({
@@ -21,7 +21,15 @@ const updateTaskSchema = z.object({
   sort_order: z.number().int().optional(),
 });
 
-export async function createTask(title: string) {
+// Extended Task type with children for tree structure
+export interface TaskWithChildren extends Task {
+  children?: TaskWithChildren[];
+}
+
+/**
+ * Create a new task (supports subtasks via parentId)
+ */
+export async function createTask(title: string, parentId?: string) {
   const supabase = await createClient();
   
   // Get current user
@@ -40,12 +48,26 @@ export async function createTask(title: string) {
     return { error: "Title must be 200 characters or less" };
   }
 
+  // If parentId is provided, verify it exists and belongs to user
+  if (parentId) {
+    const { data: parentTask, error: parentError } = await supabase
+      .from("tasks")
+      .select("id")
+      .eq("id", parentId)
+      .eq("user_id", user.id)
+      .single();
+
+    if (parentError || !parentTask) {
+      return { error: "Parent task not found" };
+    }
+  }
+
   const taskData: TaskInsert = {
     user_id: user.id,
     title: title.trim(),
     description: null,
     deadline: null,
-    parent_id: null,
+    parent_id: parentId || null,
   };
 
   const { data, error } = await supabase
@@ -62,6 +84,9 @@ export async function createTask(title: string) {
   return { data };
 }
 
+/**
+ * Update an existing task
+ */
 export async function updateTask(taskId: string, updates: TaskUpdate) {
   const supabase = await createClient();
   
@@ -94,6 +119,9 @@ export async function updateTask(taskId: string, updates: TaskUpdate) {
   return { data };
 }
 
+/**
+ * Decrement deadline (Minus One Day feature)
+ */
 export async function decrementDeadline(taskId: string) {
   const supabase = await createClient();
   
@@ -131,6 +159,9 @@ export async function decrementDeadline(taskId: string) {
   return { success: true };
 }
 
+/**
+ * Delete a task (cascade delete handles children via DB constraint)
+ */
 export async function deleteTask(taskId: string) {
   const supabase = await createClient();
   
@@ -153,6 +184,9 @@ export async function deleteTask(taskId: string) {
   return { success: true };
 }
 
+/**
+ * Get all tasks for the current user (flat list)
+ */
 export async function getTasks() {
   const supabase = await createClient();
   
@@ -173,4 +207,54 @@ export async function getTasks() {
   }
 
   return { data: data || [] };
+}
+
+/**
+ * Get tasks as a tree structure (with nested children)
+ */
+export async function getTasksTree(): Promise<{ data: TaskWithChildren[]; error?: string }> {
+  const supabase = await createClient();
+  
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user) {
+    return { data: [], error: "Not authenticated" };
+  }
+
+  const { data, error } = await supabase
+    .from("tasks")
+    .select("*")
+    .eq("user_id", user.id)
+    .order("sort_order", { ascending: true })
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    return { data: [], error: error.message };
+  }
+
+  // Build tree structure
+  const tasks = data || [];
+  const taskMap = new Map<string, TaskWithChildren>();
+  const rootTasks: TaskWithChildren[] = [];
+
+  // First pass: create map of all tasks
+  tasks.forEach((task) => {
+    taskMap.set(task.id, { ...task, children: [] });
+  });
+
+  // Second pass: build tree
+  tasks.forEach((task) => {
+    const taskWithChildren = taskMap.get(task.id)!;
+    
+    if (task.parent_id && taskMap.has(task.parent_id)) {
+      // Has parent - add to parent's children
+      const parent = taskMap.get(task.parent_id)!;
+      parent.children = parent.children || [];
+      parent.children.push(taskWithChildren);
+    } else {
+      // No parent or parent not found - it's a root task
+      rootTasks.push(taskWithChildren);
+    }
+  });
+
+  return { data: rootTasks };
 }

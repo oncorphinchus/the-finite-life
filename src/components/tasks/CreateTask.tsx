@@ -2,14 +2,27 @@
 
 import { useRef, useTransition, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { X } from "lucide-react";
 import { createTask } from "@/features/tasks/actions";
 import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 interface CreateTaskProps {
+  parentId?: string;
   onTaskCreated?: () => void;
+  onCancel?: () => void;
+  placeholder?: string;
+  compact?: boolean;
 }
 
-export function CreateTask({ onTaskCreated }: CreateTaskProps) {
+export function CreateTask({ 
+  parentId, 
+  onTaskCreated, 
+  onCancel,
+  placeholder = "What needs to be done?",
+  compact = false 
+}: CreateTaskProps) {
   const formRef = useRef<HTMLFormElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const [isPending, startTransition] = useTransition();
@@ -33,7 +46,7 @@ export function CreateTask({ onTaskCreated }: CreateTaskProps) {
     inputRef.current?.focus();
 
     startTransition(async () => {
-      const result = await createTask(taskTitle);
+      const result = await createTask(taskTitle, parentId);
       
       if (result?.error) {
         setError(result.error);
@@ -53,31 +66,60 @@ export function CreateTask({ onTaskCreated }: CreateTaskProps) {
       initial={{ opacity: 0, y: -10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] as const }}
-      className="mb-8"
+      className={cn(compact ? "mb-0" : "mb-8")}
     >
-      <div className="relative">
+      <div className="relative flex items-center gap-2">
         <input
           ref={inputRef}
           type="text"
           name="title"
-          placeholder="What needs to be done?"
+          placeholder={placeholder}
           autoComplete="off"
+          autoFocus={compact}
           disabled={isPending}
-          className="w-full px-0 py-4 bg-transparent border-0 border-b border-border text-foreground text-lg font-serif placeholder:text-muted-foreground/60 placeholder:font-serif focus:outline-none focus:border-foreground transition-colors disabled:opacity-50"
+          className={cn(
+            "flex-1 bg-transparent border-0 border-b text-foreground font-serif",
+            "placeholder:text-muted-foreground/60 placeholder:font-serif",
+            "focus:outline-none focus:border-foreground transition-colors",
+            "disabled:opacity-50",
+            compact 
+              ? "px-0 py-2 text-sm border-border" 
+              : "px-0 py-4 text-lg border-border"
+          )}
         />
         {isPending && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="absolute right-0 top-1/2 -translate-y-1/2"
+            className="flex-shrink-0"
           >
             <span className="inline-block w-4 h-4 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin" />
           </motion.div>
         )}
+        {compact && onCancel && (
+          <Button
+            type="button"
+            size="icon-xs"
+            variant="ghost"
+            onClick={onCancel}
+            className="flex-shrink-0 text-muted-foreground"
+          >
+            <X className="w-4 h-4" />
+          </Button>
+        )}
       </div>
-      <div className="flex items-center justify-between mt-2">
-        <p className="text-xs text-muted-foreground">
-          Press <kbd className="px-1.5 py-0.5 bg-secondary rounded text-[10px] font-mono">Enter</kbd> to add task
+      <div className={cn(
+        "flex items-center justify-between",
+        compact ? "mt-1" : "mt-2"
+      )}>
+        <p className={cn(
+          "text-muted-foreground",
+          compact ? "text-[10px]" : "text-xs"
+        )}>
+          Press <kbd className={cn(
+            "bg-secondary rounded font-mono",
+            compact ? "px-1 py-0.5 text-[8px]" : "px-1.5 py-0.5 text-[10px]"
+          )}>Enter</kbd> to add
         </p>
         <AnimatePresence>
           {error && (
@@ -85,7 +127,10 @@ export function CreateTask({ onTaskCreated }: CreateTaskProps) {
               initial={{ opacity: 0, x: 10 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: 10 }}
-              className="text-xs text-red-500"
+              className={cn(
+                "text-red-500",
+                compact ? "text-[10px]" : "text-xs"
+              )}
             >
               {error}
             </motion.p>

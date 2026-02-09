@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { 
   LuxuryWrapper, 
   LuxurySection, 
@@ -9,7 +9,7 @@ import {
 } from "@/components/layout/LuxuryWrapper";
 import { Header } from "@/components/layout/Header";
 import { LifeGrid, GridLegend } from "@/components/life-grid/LifeGrid";
-import { TaskList } from "@/components/tasks/TaskList";
+import { TaskList, buildTaskTree } from "@/components/tasks/TaskList";
 import { CreateTask } from "@/components/tasks/CreateTask";
 import { SettingsDialog } from "@/components/settings/SettingsDialog";
 import type { User } from "@supabase/supabase-js";
@@ -45,6 +45,9 @@ export function HomeClient({
     }
   }, [needsOnboarding]);
 
+  // Build task tree from flat list
+  const taskTree = useMemo(() => buildTaskTree(tasks), [tasks]);
+
   return (
     <LuxuryWrapper>
       {/* Header with Auth & Settings */}
@@ -79,7 +82,7 @@ export function HomeClient({
           <>
             <CreateTask />
             <TaskList 
-              tasks={tasks} 
+              tasks={taskTree} 
               emptyMessage="No tasks yet. What needs to be done?"
             />
           </>
