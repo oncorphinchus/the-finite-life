@@ -1,7 +1,7 @@
 # THE FINITE LIFE — Living Roadmap
 
 > A "Quiet Luxury" Memento Mori PWA (4000 Weeks)
-> Last Updated: 2026-02-03
+> Last Updated: 2026-02-09
 
 ---
 
@@ -50,6 +50,18 @@
 - [x] **4.6.3** Create `SettingsDialog.tsx`: A modal to set `birth_date` (Critical for LifeGrid accuracy) ✓
 - [x] **4.6.4** Onboarding Logic: Force-open Settings Dialog if `birth_date` is null ✓
 
+## Phase 4.7: Task Management (Subtasks & CRUD)
+
+- [x] **4.7.1** Install Shadcn UI components (dropdown-menu, popover, calendar, button) ✓
+- [x] **4.7.2** Create `TaskItem.tsx`: Mobile-optimized task row with circular checkbox, truncated title, deadline badge ✓
+- [x] **4.7.3** Implement dropdown menu (Add Subtask, Edit Title, Set Deadline, Delete) ✓
+- [x] **4.7.4** Implement inline edit mode with Enter/Escape key support ✓
+- [x] **4.7.5** Implement Calendar popover for deadline selection ✓
+- [x] **4.7.6** Update `TaskList.tsx` for recursive subtask rendering with visual connectors ✓
+- [x] **4.7.7** Update `actions.ts` to support `parentId` for subtask creation ✓
+- [x] **4.7.8** Add `getTasksTree()` action for hierarchical task fetching ✓
+- [ ] **4.7.9** Verify cascade delete in Supabase (requires manual migration)
+
 ## Phase 5: Polish & Deploy
 
 - [x] **5.1** Framer Motion page transitions ✓
@@ -75,4 +87,3 @@
 - **Minus 1 Button:** `useOptimistic` — no loading spinners
 - **Data Fetching:** React Server Components + Server Actions
 - **Auth:** Supabase Auth with RLS policies
-
